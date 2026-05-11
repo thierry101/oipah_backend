@@ -44,17 +44,29 @@ def check_if_select_return_string(key, sentence, errors):
 def get_unique_oipah(key, base_query, sentence, errors, field_name="oipah"):
     if not sentence:
         errors[key] = "Ce champ est obligatoire"
+
     if sentence:
-        filter_kwargs = {field_name: sentence}
+        filter_kwargs = {f"{field_name}__iexact": sentence.strip()}
+
         if base_query.filter(**filter_kwargs).exists():
             errors[key] = "Ce nom existe déjà"
+
     if not errors:
-        return str(sentence).strip()
+        return sentence.strip()
 
 
 def checkIfEmailRequired(key, sentence, errors):
     if sentence is None or str(sentence).strip() == "":
         errors[key] = "Ce champ est obligatoire"
+    sentence = str(sentence).strip()
+    if re.match(email_pattern, sentence):
+        return sentence
+    errors[key] = "Entrez une adresse email valide"
+    
+
+def checkIfEmailNotRequired(key, sentence, errors):
+    if sentence is None or str(sentence).strip() == "":
+        return None
     sentence = str(sentence).strip()
     if re.match(email_pattern, sentence):
         return sentence
@@ -81,6 +93,20 @@ def check_phone_numberRequired(key, sentence, errors):
 
     if not sentence or str(sentence).strip() == "":
         errors[key] = 'Ce champ est obligatoire'
+        return None
+
+    sentence = str(sentence).strip()
+    if re.match(pattern, sentence):
+        return sentence
+    else:
+        errors[key] = "Entrez numéro valide avec indice de pays"
+        return None
+    
+
+def check_phone_number_not_required(key, sentence, errors):
+    pattern = r'^\+\d{1,3}(?:\s?\d{1,4}){2,}$'
+
+    if not sentence or str(sentence).strip() == "":
         return None
 
     sentence = str(sentence).strip()

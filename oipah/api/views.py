@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status
 from django.db import transaction
 
 from authentication.permissions import AdminPermissions
 from backend.regex import check_if_select_return_string, check_phone_numberRequired, checkIfEmailRequired, checkIfStringNotRequired, get_unique_oipah, validate_base64_image
-from oipah.api.serializers import OipahAttributeSerializer
-from oipah.models import OipahAttribute
+from oipah.api.serializers import OipahAttributeSerializer, SectorAgriculSerializer
+from oipah.models import OipahAttribute, SectorAgricul
 
 
 
@@ -28,7 +28,7 @@ class UpdateSettingAPIView(APIView):
         data = request.data
         errors = {}
         checker = data.get('checker')
-        oipahs = OipahAttribute.objects.all().exclude(name=current_user.oipah.name)
+        oipahs = OipahAttribute.objects.all().exclude(name=current_user.oipah)
         current_oipah = OipahAttribute.objects.filter(name=current_user.oipah.name)
         
         if checker == 'identity':
@@ -87,5 +87,67 @@ class UpdateSettingAPIView(APIView):
             else:
                 return Response({"errors":errors}, status=status.HTTP_400_BAD_REQUEST)
             
+
+class SectorAgriculturalAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def get(self, request):
+        current_user = request.user
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+        serializer = SectorAgriculSerializer(queryset, many=True)
+        return Response({'result':serializer.data}, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        current_user = request.user
+        data = request.data
+        errors = {}
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+        name = get_unique_oipah('name', queryset, data.get('name'), errors, 'name')
+        description = checkIfStringNotRequired(data.get('description'))
+        if not errors:
+            sector = SectorAgricul.objects.create(oipah=current_user.oipah, name=name, description=description)
+            serializer = SectorAgriculSerializer(sector)
+            return Response({'result':serializer.data}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
         
+
+class SectorAgriculturalDetailAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def put(self, request, id_sector):
+        current_user = request.user
+        data = request.data
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+        errors = {}
+        try:
+            sector = SectorAgricul.objects.get(id=int(id_sector), oipah=current_user.oipah)
+        except SectorAgricul.DoesNotExist:
+            errors['sector'] = "N'existe pas"
+        if data.get('name') and sector and str(data.get('name')).lower() != sector.name.lower():
+            name = get_unique_oipah('name', queryset, data.get('name'), errors, 'name')
+        if not errors:
+            sector.name = str(data.get('name')).strip()
+            sector.description = str(data.get('description')).strip() if data.get('description') else ''
+            sector.save()
+            serializer = SectorAgriculSerializer(sector)
+            return Response({'result':serializer.data}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, id_sector):
+        current_user = request.user
+        errors = {}
+        try:
+            sector = SectorAgricul.objects.get(id=int(id_sector), oipah=current_user.oipah)
+        except SectorAgricul.DoesNotExist:
+            errors['sector'] = "N'existe pas"
+        if sector:
+            sector.delete()
+            return Response({'result':True}, status=status.HTTP_201_CREATED)
+            
+        
+            
+            
+            
         

@@ -55,7 +55,6 @@ class RegisterUserByAdmin(APIView):
         paginator = CustomPagination()
         result_page = paginator.paginate_queryset(users, request)
         serializer = UserMiniSerializer( result_page, many=True)
-        
         return paginator.get_paginated_response( serializer.data)
 
     @transaction.atomic

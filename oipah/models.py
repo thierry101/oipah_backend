@@ -17,3 +17,13 @@ class OipahAttribute(models.Model):
     date_add = models.DateTimeField(auto_now_add=True, db_index=True)
     updated = models.DateTimeField(auto_now=True)
     
+
+class SectorAgricul(models.Model):
+    oipah = models.ForeignKey(OipahAttribute, on_delete=models.CASCADE, blank=True, null=True)
+    name = models.CharField(max_length=100, null=True)
+    code_unik = models.CharField(max_length=100, null=True)
+    description = models.TextField(blank=True, null=True)
+    date_add = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated = models.DateTimeField(auto_now=True)
+    
+    

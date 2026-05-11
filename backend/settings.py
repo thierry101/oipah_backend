@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     "corsheaders",
 
     "authentication",
-    "oipah"
+    "oipah",
+    "grantors"
 ]
 
 MIDDLEWARE = [

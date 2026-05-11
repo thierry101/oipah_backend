@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("authentication.urls", namespace="auth")),
     path("", include("oipah.urls", namespace="oipah")),
+    path("", include("grantors.urls", namespace="grantors")),
 
 ]
 if settings.DEBUG:
