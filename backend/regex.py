@@ -4,6 +4,7 @@ import base64
 import uuid
 from PIL import Image
 from io import BytesIO
+from datetime import datetime
 from django.core.files.base import ContentFile
 
 
@@ -15,6 +16,19 @@ email_pattern = (
         r"(?:[^\W_][\w\-À-ÖØ-öø-ÿ]{0,61}[^\W_]\.)+"  # Sous-domaines autorisant accents
         r"[A-Za-zÀ-ÖØ-öø-ÿ]{2,63}$"             # TLD (entre 2 et 63 caractères, avec accents)
     )
+
+
+
+def check_is_date_not_required(key, value, errors, date_format="%Y-%m-%d"):
+    if value:
+        try:
+            datetime.strptime(value, date_format)
+            return datetime.strptime(value, date_format).date()
+        except (ValueError, TypeError):
+            errors[key] = "Entrer une date valide"
+            return False
+    else:
+        return None
 
 
 def checkIfStringNotRequired(sentence):
@@ -41,7 +55,7 @@ def check_if_select_return_string(key, sentence, errors):
     return sentence
 
 
-def get_unique_oipah(key, base_query, sentence, errors, field_name="oipah"):
+def get_unique_name(key, base_query, sentence, errors, field_name="oipah"):
     if not sentence:
         errors[key] = "Ce champ est obligatoire"
 
@@ -126,6 +140,24 @@ def check_is_only_numbers(key, param, errors):
         errors[key] = "Ce champ doit être numérique"
     if is_numeric:
         return int(param)
+    
+
+def check_int_or_float(key, sentence, errors):
+    if not sentence:
+        errors[key] = "Ce champ est obligatoire"
+    else:
+        try:
+            value = float(sentence)
+
+            # retourne int si entier
+            if value.is_integer():
+                return int(value)
+
+            return value
+
+        except (ValueError, TypeError):
+            errors[key] = "Entrer des chiffres"
+            return None
     
 
 def checkIfUserAgree(key, sentence, errors):

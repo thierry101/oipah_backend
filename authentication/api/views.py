@@ -45,10 +45,8 @@ class RegisterUserByAdmin(APIView):
     permission_classes = [AdminPermissions]
     
     def get(self, request):
-
         user = request.user
         search = request.GET.get('search', '').strip()
-
         users = User.objects.filter(oipah=user.oipah).order_by('-date_joined', '-last_seen')
         if search:
                 users = users.filter(Q(name__icontains=search) | Q(surname__icontains=search) | Q(email__icontains=search))

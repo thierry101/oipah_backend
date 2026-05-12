@@ -25,6 +25,7 @@ urlpatterns = [
     path("", include("authentication.urls", namespace="auth")),
     path("", include("oipah.urls", namespace="oipah")),
     path("", include("grantors.urls", namespace="grantors")),
+    path("", include("plotLand.urls", namespace="plotLand")),
 
 ]
 if settings.DEBUG:

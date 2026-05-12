@@ -1,13 +1,13 @@
 from django.urls import path
 
-from oipah.api.views import SectorAgriculturalAPIView, SectorAgriculturalDetailAPIView, UpdateSettingAPIView
+from oipah.api.views import RetrieveAllSectorAgriculturalAPIView, SectorAgriculturalAPIView, SectorAgriculturalDetailAPIView, UpdateSettingAPIView
 
 
 
 urlpatterns = [
     path("update-settings", UpdateSettingAPIView.as_view(), name="update-setting"),
     path("create-agricultural", SectorAgriculturalAPIView.as_view(), name="agricultural"),
-    path("edit-agricultural/<id_sector>", SectorAgriculturalDetailAPIView.as_view(), name="edit-agricultural")
-
+    path("edit-agricultural/<id_sector>", SectorAgriculturalDetailAPIView.as_view(), name="edit-agricultural"),
+    path("retrieve-agricultural", RetrieveAllSectorAgriculturalAPIView.as_view(), name="retrieve-agricultural"),
 ]
 app_name = 'oipah'

@@ -46,7 +46,8 @@ INSTALLED_APPS = [
 
     "authentication",
     "oipah",
-    "grantors"
+    "grantors",
+    "plotLand"
 ]
 
 MIDDLEWARE = [

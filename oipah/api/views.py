@@ -2,9 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
+from rest_framework.permissions import IsAuthenticated
 
 from authentication.permissions import AdminPermissions
-from backend.regex import check_if_select_return_string, check_phone_numberRequired, checkIfEmailRequired, checkIfStringNotRequired, get_unique_oipah, validate_base64_image
+from backend.regex import check_if_select_return_string, check_phone_numberRequired, checkIfEmailRequired, checkIfStringNotRequired, get_unique_name, validate_base64_image
 from oipah.api.serializers import OipahAttributeSerializer, SectorAgriculSerializer
 from oipah.models import OipahAttribute, SectorAgricul
 
@@ -32,7 +33,7 @@ class UpdateSettingAPIView(APIView):
         current_oipah = OipahAttribute.objects.filter(name=current_user.oipah.name)
         
         if checker == 'identity':
-            oipah = get_unique_oipah("oipahName",oipahs, data.get('oipah'), errors, 'name')
+            oipah = get_unique_name("oipahName",oipahs, data.get('oipah'), errors, 'name')
             rccm = checkIfStringNotRequired(data.get('rccm'))
             niu = checkIfStringNotRequired(data.get('niu'))
             if not errors:
@@ -102,7 +103,7 @@ class SectorAgriculturalAPIView(APIView):
         data = request.data
         errors = {}
         queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
-        name = get_unique_oipah('name', queryset, data.get('name'), errors, 'name')
+        name = get_unique_name('name', queryset, data.get('name'), errors, 'name')
         description = checkIfStringNotRequired(data.get('description'))
         if not errors:
             sector = SectorAgricul.objects.create(oipah=current_user.oipah, name=name, description=description)
@@ -118,22 +119,37 @@ class SectorAgriculturalDetailAPIView(APIView):
     def put(self, request, id_sector):
         current_user = request.user
         data = request.data
-        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
         errors = {}
+
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+
         try:
             sector = SectorAgricul.objects.get(id=int(id_sector), oipah=current_user.oipah)
         except SectorAgricul.DoesNotExist:
-            errors['sector'] = "N'existe pas"
-        if data.get('name') and sector and str(data.get('name')).lower() != sector.name.lower():
-            name = get_unique_oipah('name', queryset, data.get('name'), errors, 'name')
-        if not errors:
-            sector.name = str(data.get('name')).strip()
-            sector.description = str(data.get('description')).strip() if data.get('description') else ''
-            sector.save()
-            serializer = SectorAgriculSerializer(sector)
-            return Response({'result':serializer.data}, status=status.HTTP_201_CREATED)
-        else:
-            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'errors': {'sector': "N'existe pas"}}, status=status.HTTP_404_NOT_FOUND)
+
+        new_name = str(data.get('name', '')).strip()
+
+        # Vérifie uniquement si le nom change
+        if new_name and new_name.lower() != sector.name.lower():
+
+            exists = queryset.filter(name__iexact=new_name).exclude(id=sector.id).exists()
+
+            if exists:
+                errors['name'] = "Ce nom existe déjà"
+
+        if errors:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        sector.name = new_name
+        print("the description is ", data.get('description'))
+        sector.description = str(data.get('description')).strip() if data.get('description') else ''
+
+        sector.save()
+
+        serializer = SectorAgriculSerializer(sector)
+
+        return Response({'result': serializer.data}, status=status.HTTP_200_OK)
     
     def delete(self, request, id_sector):
         current_user = request.user
@@ -145,6 +161,16 @@ class SectorAgriculturalDetailAPIView(APIView):
         if sector:
             sector.delete()
             return Response({'result':True}, status=status.HTTP_201_CREATED)
+        
+
+class RetrieveAllSectorAgriculturalAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        current_user = request.user
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+        serializer = SectorAgriculSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
             
         
             
