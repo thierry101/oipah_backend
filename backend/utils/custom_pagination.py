@@ -16,7 +16,6 @@ class CustomPagination(PageNumberPagination):
         page_size = self.get_page_size(self.request)
 
         total_pages = math.ceil(total_items / page_size)
-        print("nber items ", total_items, " page size ", page_size, " total page ", total_pages)
 
         return Response({
             'currentPage': current_page,

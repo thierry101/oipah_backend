@@ -37,3 +37,46 @@ class GrantorsAPIView(APIView):
             return Response({"result":True}, status=status.HTTP_201_CREATED)
         else:
             return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class GrantorsDetailAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def put(self, request, id_grantor):
+        current_user = request.user
+        data = request.data
+        errors = {}
+        name = checkIfStringRequired('name', data.get('name'), errors)
+        type_donor = check_if_select_return_string('type_donor', data.get('type_donor'), errors)
+        country = check_if_select_return_string('country', data.get('country'), errors)
+        email = checkIfEmailNotRequired('email', data.get('email'), errors)
+        phone = check_phone_number_not_required('phone', data.get('phone'), errors)
+        try:
+            grantor = Grantors.objects.get(id=int(id_grantor), oipah=current_user.oipah)
+        except Grantors.DoesNotExist:
+            errors['grantor'] = "Ce subventionneur n'existe pas"
+        if grantor and name and (name != grantor.name):
+            if Grantors.objects.filter(oipah=current_user.oipah, name=name).exists():
+                errors['name'] = "Ce subventionneur existe déjà"
+        if not errors:
+            grantor.name = name
+            grantor.type_donor = type_donor
+            grantor.country = country
+            grantor.email = email
+            grantor.phone = phone
+            grantor.save()
+            return Response({'result':True}, status=status.HTTP_200_OK)
+        else:
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def delete(self, request, id_grantor):
+        current_user = request.user
+        errors = {}
+        try:
+            grantor = Grantors.objects.get(id=int(id_grantor), oipah=current_user.oipah)
+        except Grantors.DoesNotExist:
+            errors['grantor'] = "Ce subventionneur n'existe pas"
+        if grantor:
+            grantor.delete()
+        return Response({'result':True}, status=status.HTTP_200_OK)
+    

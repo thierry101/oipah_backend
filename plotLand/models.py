@@ -9,7 +9,6 @@ from oipah.models import OipahAttribute, SectorAgricul
 class PlotLand(models.Model):
     oipah = models.ForeignKey(OipahAttribute, on_delete=models.CASCADE, blank=True, null=True)
     owner_land = models.ForeignKey(User, blank=True, on_delete=models.CASCADE, null=True)
-    code_land = models.CharField(max_length=100, null=True)
     statut_land = models.CharField(max_length=100, null=True)
     filiere = models.ForeignKey(SectorAgricul, on_delete=models.CASCADE, blank=True, null=True)
     area = models.FloatField(blank=True, null=True)
