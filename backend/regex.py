@@ -31,6 +31,18 @@ def check_is_date_not_required(key, value, errors, date_format="%Y-%m-%d"):
         return None
 
 
+def check_is_date_required(key, value, errors, date_format="%Y-%m-%d"):
+    if value:
+        try:
+            datetime.strptime(value, date_format)
+            return datetime.strptime(value, date_format).date()
+        except (ValueError, TypeError):
+            errors[key] = "Entrer une date valide"
+            return False
+    else:
+        errors[key] = "Ce champ est obligatoire"
+    
+
 def checkIfStringNotRequired(sentence):
     if sentence is None or str(sentence).strip() == "":
         return None
@@ -53,6 +65,33 @@ def check_if_select_return_string(key, sentence, errors):
         errors[key] = "Veuillez choisir une option"
         return None
     return sentence
+
+
+def check_multi_select_list_required(key, data, errors):
+
+    valid_values = []
+
+    # Vérifie si la liste est vide
+    if not data:
+        errors[key] = "Ce champ est obligatoire"
+        return []
+
+    for item in data:
+
+        item_str = str(item).strip().lower()
+
+        # Ignore "0" ou "choisir ..."
+        if item_str == "0" or "choisir" in item_str:
+            errors[key] = "Veuillez choisir une option"
+            continue
+
+        valid_values.append(item)
+
+    # Si après filtrage il ne reste rien
+    if not valid_values:
+        errors[key] = "Veuillez choisir une option"
+
+    return valid_values
 
 
 def get_unique_name(key, base_query, sentence, errors, field_name="oipah"):
@@ -158,7 +197,20 @@ def check_int_or_float(key, sentence, errors):
         except (ValueError, TypeError):
             errors[key] = "Entrer des chiffres"
             return None
-    
+        
+
+def check_amount(key, amount, errors):
+    try:
+        amount = float(amount)
+
+        if amount <= 0:
+            errors[key] = "Le montant doit être supérieur à O"
+            
+        return amount
+
+    except (ValueError, TypeError):
+        errors[key] = "Entrez des chiffres"
+
 
 def checkIfUserAgree(key, sentence, errors):
     if not sentence:

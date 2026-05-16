@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Sum
 
 from authentication.permissions import AdminPermissions
-from backend.regex import check_if_select_return_string, check_phone_number_not_required, checkIfEmailNotRequired, checkIfStringRequired
+from backend.regex import check_amount, check_if_select_return_string, check_is_date_required, check_multi_select_list_required, check_phone_number_not_required, checkIfEmailNotRequired, checkIfStringNotRequired, checkIfStringRequired
 from backend.utils.custom_pagination import CustomPagination
-from grantors.api.serializers import GrantorsSerializer
-from grantors.models import Grantors
+from grantors.api.serializers import GrantorsSerializer, SubsidySerializer
+from grantors.models import Grantors, Subsidy
 
 
 
@@ -16,7 +17,10 @@ class GrantorsAPIView(APIView):
     
     def get(self, request):
         current_user = request.user
+        search = request.GET.get('search', '').strip()
         donors = Grantors.objects.filter(oipah=current_user.oipah)
+        if search:
+            donors = donors.filter(name__icontains=search)
         paginator = CustomPagination()
         result_page = paginator.paginate_queryset(donors, request)
         serializer = GrantorsSerializer( result_page, many=True)
@@ -79,4 +83,62 @@ class GrantorsDetailAPIView(APIView):
         if grantor:
             grantor.delete()
         return Response({'result':True}, status=status.HTTP_200_OK)
+    
+
+class SubsidyAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def get(self, request):
+        current_user = request.user
+        subsidies = Subsidy.objects.filter(oipah=current_user.oipah)
+        paginator = CustomPagination()
+        
+        total_received = subsidies.filter(oipah=current_user.oipah, status="received").aggregate(total=Sum('amount'))['total'] or 0
+        total_pending = subsidies.filter(oipah=current_user.oipah, status="pending").aggregate(total=Sum('amount'))['total'] or 0
+        others = {'total_received':total_received, 'total_pending':total_pending}
+        result_page = paginator.paginate_queryset(subsidies, request)
+        serializer = SubsidySerializer( result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data['other_params'] = others
+        return response
+        
+    def post(self, request):
+        advanced_amnt = None
+        current_user = request.user
+        data = request.data
+        errors = {}
+        donor_id = check_if_select_return_string('donorId', data.get('donorId'), errors)
+        object = checkIfStringRequired('object', data.get('object'), errors)
+        amount = check_amount('amount', data.get('amount'), errors)
+        statut = check_if_select_return_string('status', data.get('status'), errors)
+        received_date = check_is_date_required('receivedDate', data.get('received_date'), errors)
+        reference = checkIfStringNotRequired('reference')
+        filiere = check_multi_select_list_required('filiere', data.get('filiere'), errors)
+        notes = checkIfStringNotRequired('notes')
+        if statut == 'partial':
+            advanced_amnt = check_amount('advancedAmnt', data.get('advanced_amnt'), errors)
+        if not errors:
+            subsidy = Subsidy.objects.create(oipah=current_user.oipah, grantor_id=int(donor_id), object=object, notes=notes,
+                    amount=amount, status=statut, received_date=received_date, reference=reference, advanced_amnt=advanced_amnt)
+            for fil in filiere:
+                subsidy.filiere.add(fil)
+            return Response({'result':True}, status=status.HTTP_200_OK)
+        else:
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class SubsidyDetailAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def put(self, request, id_subsidy):
+        current_user = request.user
+        data = request.data
+        print(data)
+        errors = {}
+        if not errors:
+        
+            return Response({'result':True}, status=status.HTTP_200_OK)
+        else:
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+        
     
