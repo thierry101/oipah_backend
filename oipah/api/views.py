@@ -94,7 +94,7 @@ class SectorAgriculturalAPIView(APIView):
     
     def get(self, request):
         current_user = request.user
-        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
+        queryset = SectorAgricul.objects.filter(oipah=current_user.oipah).order_by('-updated')
         serializer = SectorAgriculSerializer(queryset, many=True)
         return Response({'result':serializer.data}, status=status.HTTP_200_OK)
     
@@ -131,7 +131,7 @@ class SectorAgriculturalDetailAPIView(APIView):
         new_name = str(data.get('name', '')).strip()
 
         # Vérifie uniquement si le nom change
-        if new_name and new_name.lower() != sector.name.lower():
+        if new_name and (new_name.lower() != sector.name.lower()):
 
             exists = queryset.filter(name__iexact=new_name).exclude(id=sector.id).exists()
 

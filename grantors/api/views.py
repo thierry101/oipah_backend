@@ -1,15 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 from authentication.permissions import AdminPermissions
-from backend.regex import check_amount, check_if_select_return_string, check_is_date_required, check_multi_select_list_required, check_phone_number_not_required, checkIfEmailNotRequired, checkIfStringNotRequired, checkIfStringRequired
+from backend.regex import check_amount, check_if_select_return_string, check_is_date_required, check_multi_select_list_required, check_phone_number_not_required, checkIfEmailNotRequired, checkIfStringNotRequired, checkIfStringRequired, convert_string_to_date
 from backend.utils.custom_pagination import CustomPagination
 from grantors.api.serializers import GrantorsSerializer, SubsidySerializer
 from grantors.models import Grantors, Subsidy
-
-
 
 
 class GrantorsAPIView(APIView):
@@ -18,7 +16,7 @@ class GrantorsAPIView(APIView):
     def get(self, request):
         current_user = request.user
         search = request.GET.get('search', '').strip()
-        donors = Grantors.objects.filter(oipah=current_user.oipah)
+        donors = Grantors.objects.filter(oipah=current_user.oipah).order_by('-updated')
         if search:
             donors = donors.filter(name__icontains=search)
         paginator = CustomPagination()
@@ -90,8 +88,19 @@ class SubsidyAPIView(APIView):
     
     def get(self, request):
         current_user = request.user
-        subsidies = Subsidy.objects.filter(oipah=current_user.oipah)
         paginator = CustomPagination()
+        subsidies = Subsidy.objects.filter(oipah=current_user.oipah).order_by('-updated')
+        search = request.GET.get('search', '').strip()
+        statut = request.GET.get('statut_land', '').strip()
+        start_date = request.GET.get('start_date', '').strip()
+        end_date = request.GET.get('end_date', '').strip()
+        
+        if search:
+            subsidies = subsidies.filter(Q(grantor__name__icontains=search) | Q(filiere__name__icontains=search))
+        if statut:
+            subsidies = subsidies.filter(status=statut)
+        if start_date and end_date and (convert_string_to_date(start_date) < convert_string_to_date(end_date)):
+            subsidies = subsidies.filter(received_date__gte=start_date, received_date__lte=end_date)
         
         total_received = subsidies.filter(oipah=current_user.oipah, status="received").aggregate(total=Sum('amount'))['total'] or 0
         total_pending = subsidies.filter(oipah=current_user.oipah, status="pending").aggregate(total=Sum('amount'))['total'] or 0

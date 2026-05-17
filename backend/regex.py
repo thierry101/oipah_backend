@@ -29,6 +29,12 @@ def check_is_date_not_required(key, value, errors, date_format="%Y-%m-%d"):
             return False
     else:
         return None
+    
+
+def convert_string_to_date(date_str):
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    return date_obj
+
 
 
 def check_is_date_required(key, value, errors, date_format="%Y-%m-%d"):
