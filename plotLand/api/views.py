@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
 from django.db.models import Sum, Q
 from rest_framework.permissions import IsAuthenticated
 
@@ -39,6 +40,7 @@ class PlotLandAPIView(APIView):
         response.data['other_params'] = others
         return response
 
+    @transaction.atomic
     def post(self, request):
         current_user = request.user
         data = request.data
