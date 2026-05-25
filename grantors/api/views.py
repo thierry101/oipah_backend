@@ -88,6 +88,23 @@ class GrantorsDetailAPIView(APIView):
         return Response({'result':True}, status=status.HTTP_200_OK)
     
 
+class SubsidyForProjectAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def get(self, request):
+        current_user = request.user
+        paginator = CustomPagination()
+        subsidies = Subsidy.objects.filter(oipah=current_user.oipah, dynamic_amount__gt=0).order_by('-updated')
+        search = request.GET.get('search', '').strip()
+        
+        if search:
+            subsidies = subsidies.filter(Q(grantor__name__icontains=search) | Q(filiere__name__icontains=search))
+        
+        result_page = paginator.paginate_queryset(subsidies, request)
+        serializer = SubsidySerializer( result_page, many=True)
+        return paginator.get_paginated_response( serializer.data)
+        
+
 class SubsidyAPIView(APIView):
     permission_classes = [AdminPermissions]
     
@@ -107,16 +124,15 @@ class SubsidyAPIView(APIView):
             subsidies = subsidies.filter(status=statut)
         if start_date and end_date and (convert_string_to_date(start_date) < convert_string_to_date(end_date)):
             subsidies = subsidies.filter(received_date__gte=start_date, received_date__lte=end_date)
-        
-        # total_received = subsidies.filter(oipah=current_user.oipah, status="received").aggregate(total=Sum('amount'))['total'] or 0
 
         received_amount = subsidies.filter(oipah=current_user.oipah, status="received").aggregate(
         total=Coalesce(Sum('amount'), Value(0, output_field=decimal_field)))['total']
         partial_advanced = subsidies.filter(oipah=current_user.oipah, status="partial").aggregate(
         total=Coalesce(Sum('advanced_amnt'), Value(0, output_field=decimal_field)))['total']
         total_received = received_amount + partial_advanced
-        total_pending = subsidies.filter(oipah=current_user.oipah, status="pending").aggregate(total=Sum('amount'))['total'] or 0
-        others = {'total_received':total_received, 'total_pending':total_pending}
+        total_pending = subsidies.filter(oipah=current_user.oipah).exclude(status="received").aggregate(total=Sum('rest_amnt'))['total'] or 0
+        total_subsidies = subsidies.filter(oipah=current_user.oipah).aggregate(total=Sum('amount'))['total'] or 0
+        others = {'total_received':total_received, 'total_pending':total_pending, 'total_subsidies':total_subsidies}
         result_page = paginator.paginate_queryset(subsidies, request)
         serializer = SubsidySerializer( result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
@@ -146,9 +162,15 @@ class SubsidyAPIView(APIView):
                 errors['advancedAmnt'] = "Ce montant ne peut être supérieur au montant de la subvention"
         if not errors:
             subsidy = Subsidy.objects.create(oipah=current_user.oipah, grantor_id=int(donor_id), object=object, notes=notes,
-                    amount=amount, status=statut, received_date=received_date, reference=reference, advanced_amnt=advanced_amnt)
+                    amount=amount, status=statut, received_date=received_date, reference=reference)
             if statut in ['partial', 'pending']:
+                subsidy.advanced_amnt = advanced_amnt or 0
+                subsidy.dynamic_amount = advanced_amnt or 0
+                subsidy.save()
                 SubsidyPatial.objects.create(subsidy=subsidy, advanced_amnt=advanced_amnt or 0, received_date=received_date)
+            if statut == 'received':
+                subsidy.dynamic_amount = amount
+                subsidy.save()
             for fil in filiere:
                 subsidy.filiere.add(fil)
             return Response({'result':True}, status=status.HTTP_200_OK)
@@ -227,6 +249,7 @@ class SubsidyPartialAPIView(APIView):
             if not errors:
                 SubsidyPatial.objects.create(subsidy_id=int(id_subsidy), advanced_amnt=amount, received_date=received_date)
                 subsidy.advanced_amnt = (subsidy.advanced_amnt or Decimal('0')) + Decimal(amount)
+                subsidy.dynamic_amount = (subsidy.dynamic_amount or Decimal('0')) + Decimal(amount)
                 subsidy.save()
                 if subsidy.advanced_amnt >= subsidy.amount:
                     subsidy.status = "received"
@@ -238,7 +261,6 @@ class SubsidyPartialAPIView(APIView):
                 return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, id_subsidy):
-        current_user = request.user
         try:
             partial_subsidy = SubsidyPatial.objects.get(id=int(id_subsidy))
         except SubsidyPatial.DoesNotExist:

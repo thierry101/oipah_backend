@@ -142,7 +142,6 @@ class SectorAgriculturalDetailAPIView(APIView):
             return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
 
         sector.name = new_name
-        print("the description is ", data.get('description'))
         sector.description = str(data.get('description')).strip() if data.get('description') else ''
 
         sector.save()

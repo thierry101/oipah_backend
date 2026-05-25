@@ -26,6 +26,7 @@ urlpatterns = [
     path("", include("oipah.urls", namespace="oipah")),
     path("", include("grantors.urls", namespace="grantors")),
     path("", include("plotLand.urls", namespace="plotLand")),
+    path("", include("project.urls", namespace="project")),
 
 ]
 if settings.DEBUG:

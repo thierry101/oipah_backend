@@ -5,11 +5,25 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from rest_framework.permissions import IsAuthenticated
 
+from authentication.permissions import AdminPermissions
 from backend.regex import check_if_select_return_string, check_int_or_float, check_is_date_not_required, checkIfStringNotRequired, checkIfStringRequired, get_unique_name
 from backend.utils.custom_pagination import CustomPagination
-from plotLand.api.serializers import PlotLandSerializer
+from plotLand.api.serializers import PlotLandMiniSerializer, PlotLandSerializer
 from plotLand.models import PlotLand
 
+
+class PlotLandForProjectAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def get(self, request, id_usr):
+        errors = {}
+        current_user = request.user
+        lands = PlotLand.objects.filter(owner_land_id=int(id_usr), oipah=current_user.oipah, statut_land='active')
+        if not lands.exists():
+            errors['owner'] = "Cet utiliateur n'a pas de parcelle"
+            return Response({'errors':errors}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = PlotLandMiniSerializer(lands, many=True)
+        return Response({'result':serializer.data}, status=status.HTTP_200_OK)
 
 
 class PlotLandAPIView(APIView):
