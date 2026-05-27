@@ -1,10 +1,17 @@
 from rest_framework import serializers
 
+from authentication.models import User
 from grantors.models import Grantors, Subsidy
 from oipah.models import SectorAgricul
 from plotLand.models import PlotLand
-from project.models import ProjectModel
+from project.models import HistorikProject, ProjectModel, ProjectSubsidy
 
+
+
+class HistorikProjectOtherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=HistorikProject
+        exclude = ('project',)
 
 
 class SectorAgriculOtherSerializer(serializers.ModelSerializer):
@@ -13,10 +20,18 @@ class SectorAgriculOtherSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
         
 
+class UserMinSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model=User
+        fields = ['id', 'name', 'surname', 'phone']
+        
+
 class PlotLandOtherSerializer(serializers.ModelSerializer):
+    owner_land = UserMinSerializer()
     class Meta:
         model=PlotLand
-        exclude = ('oipah', 'updated', 'date_add', 'date_owner', 'description', 'statut_land', 'acd_number', 'owner_land',
+        exclude = ('oipah', 'updated', 'date_add', 'date_owner', 'description', 'statut_land', 'acd_number',
                 'filiere', 'source_water', 'type_ground', 'land_ownership')
 
 
@@ -27,19 +42,18 @@ class GrantorsOtherSerializer(serializers.ModelSerializer):
         exclude = ('oipah', 'created_at', 'updated', 'country', 'email', 'type_donor', 'phone')
         
 
-class SubsidyOtherSerializer(serializers.ModelSerializer):
-    grantor = GrantorsOtherSerializer()
-    filiere = SectorAgriculOtherSerializer(many=True)
+class ProjectSubsidyOtherSerializer(serializers.ModelSerializer):
+    subsidy_name = serializers.CharField(source='subsidy.object')
     
     class Meta:
-        model=Subsidy
-        exclude = ('oipah', 'updated', 'status', 'received_date', 'reference', 'notes', 'advanced_amnt', 'rest_amnt', 'created_at')
+        model=ProjectSubsidy
+        exclude = ('project', 'created_at')
         
 
 class ProjectModelSerializer(serializers.ModelSerializer):
     filiere = SectorAgriculOtherSerializer(many=True)
     plot_land = PlotLandOtherSerializer()
-    subsidies = SubsidyOtherSerializer(many=True)
+    project_subsidies = ProjectSubsidyOtherSerializer(many=True,  read_only=True) #le related_name défini dans le modèle ProjectSubsidy
     
     class Meta:
         model=ProjectModel

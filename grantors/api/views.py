@@ -94,7 +94,7 @@ class SubsidyForProjectAPIView(APIView):
     def get(self, request):
         current_user = request.user
         paginator = CustomPagination()
-        subsidies = Subsidy.objects.filter(oipah=current_user.oipah, dynamic_amount__gt=0).order_by('-updated')
+        subsidies = Subsidy.objects.filter(oipah=current_user.oipah).exclude(status="pending").order_by('-updated')
         search = request.GET.get('search', '').strip()
         
         if search:
