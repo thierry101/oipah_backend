@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from oipah.models import OipahAttribute, SectorAgricul
+from oipah.models import OipahAttribute, SectorAgricul, Vehicles
 
 
 class OipahAttributeSerializer(serializers.ModelSerializer):
@@ -13,3 +13,11 @@ class SectorAgriculSerializer(serializers.ModelSerializer):
     class Meta:
         model=SectorAgricul
         exclude = ('oipah', 'updated', 'date_add')
+        
+
+class VehiclesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Vehicles
+        exclude = ('oipah', 'updated', 'date_add')
+        
+        

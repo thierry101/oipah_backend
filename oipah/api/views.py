@@ -5,9 +5,9 @@ from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 
 from authentication.permissions import AdminPermissions
-from backend.regex import check_if_select_return_string, check_phone_numberRequired, checkIfEmailRequired, checkIfStringNotRequired, get_unique_name, validate_base64_image
-from oipah.api.serializers import OipahAttributeSerializer, SectorAgriculSerializer
-from oipah.models import OipahAttribute, SectorAgricul
+from backend.regex import check_if_select_return_string, check_int_or_float, check_phone_numberRequired, checkIfEmailRequired, checkIfStringNotRequired, checkIfStringRequired, get_unique_name, validate_base64_image
+from oipah.api.serializers import OipahAttributeSerializer, SectorAgriculSerializer, VehiclesSerializer
+from oipah.models import OipahAttribute, SectorAgricul, Vehicles
 
 
 
@@ -170,9 +170,69 @@ class RetrieveAllSectorAgriculturalAPIView(APIView):
         queryset = SectorAgricul.objects.filter(oipah=current_user.oipah)
         serializer = SectorAgriculSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class VehiclesAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def get(self, request):
+        current_user = request.user
+        queryset = Vehicles.objects.filter(oipah=current_user.oipah).order_by('-updated')
+        serializer = VehiclesSerializer(queryset, many=True)
+        return Response({'result':serializer.data}, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        current_user = request.user
+        data = request.data
+        errors = {}
+        plate = checkIfStringRequired('plate', data.get('plate'), errors)
+        model = checkIfStringRequired('model', data.get('model'), errors)
+        type_vehicle = checkIfStringRequired('type_vehicle', data.get('type_vehicle'), errors)
+        capacity = check_int_or_float('capacity', data.get('capacity'), errors)
+        if not errors:
+            vehicle =Vehicles.objects.create(oipah=current_user.oipah, plate=plate, model=model, type_vehicle=type_vehicle, capacity=capacity)
+            serializer = VehiclesSerializer(vehicle)
+            return Response({'result':serializer.data}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
             
+            
+class VehiclesDetailAPIView(APIView):
+    permission_classes = [AdminPermissions]
+    
+    def put(self, request, id_vehicle):
+        current_user = request.user
+        data = request.data
+        errors = {}
+        plate = checkIfStringRequired('plate', data.get('plate'), errors)
+        model = checkIfStringRequired('model', data.get('model'), errors)
+        type_vehicle = checkIfStringRequired('type_vehicle', data.get('type_vehicle'), errors)
+        capacity = check_int_or_float('capacity', data.get('capacity'), errors)
+        try:
+            vehicle = Vehicles.objects.get(id=int(id_vehicle), oipah=current_user.oipah)
+        except Vehicles.DoesNotExist:
+            return Response({'errors': {'vehicle': "N'existe pas"}}, status=status.HTTP_404_NOT_FOUND)
+        if not errors:
+            vehicle.plate = plate
+            vehicle.model = model
+            vehicle.type_vehicle = type_vehicle
+            vehicle.capacity = capacity
+            vehicle.save()
+            serializer = VehiclesSerializer(vehicle)
+            return Response({'result':serializer.data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
         
-            
-            
-            
+    def delete(self, request, id_vehicle):
+        current_user = request.user
+        errors = {}
+        try:
+            vehicle = Vehicles.objects.get(id=int(id_vehicle), oipah=current_user.oipah)
+        except Vehicles.DoesNotExist:
+            return Response({'errors': {'vehicle': "N'existe pas"}}, status=status.HTTP_404_NOT_FOUND)
+        if vehicle:
+            vehicle.delete()
+            return Response({'result':True}, status=status.HTTP_201_CREATED)
+        
+        
         

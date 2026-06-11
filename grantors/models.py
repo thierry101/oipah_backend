@@ -46,6 +46,16 @@ class Subsidy(models.Model):
         super().save(*args, **kwargs)
     
 
+class Commission_Dev(models.Model):
+    oipah = models.ForeignKey(OipahAttribute, on_delete=models.CASCADE, blank=True, null=True)
+    subsidy = models.ForeignKey(Subsidy, on_delete=models.CASCADE, blank=True, null=True)
+    amount = models.DecimalField(blank=True, max_digits=12, decimal_places=2, null=True)
+    advanced_amnt = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    status_comm = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
+    updated = models.DateTimeField(auto_now_add=False, auto_now=True)
+
+
 class SubsidyPatial(models.Model):
     subsidy = models.ForeignKey(Subsidy, on_delete=models.CASCADE, blank=True, null=True)
     advanced_amnt = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)

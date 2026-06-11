@@ -1,6 +1,6 @@
 from django.urls import path
 
-from oipah.api.views import RetrieveAllSectorAgriculturalAPIView, SectorAgriculturalAPIView, SectorAgriculturalDetailAPIView, UpdateSettingAPIView
+from oipah.api.views import RetrieveAllSectorAgriculturalAPIView, SectorAgriculturalAPIView, SectorAgriculturalDetailAPIView, UpdateSettingAPIView, VehiclesAPIView, VehiclesDetailAPIView
 
 
 
@@ -9,5 +9,7 @@ urlpatterns = [
     path("create-agricultural", SectorAgriculturalAPIView.as_view(), name="agricultural"),
     path("edit-agricultural/<id_sector>", SectorAgriculturalDetailAPIView.as_view(), name="edit-agricultural"),
     path("retrieve-agricultural", RetrieveAllSectorAgriculturalAPIView.as_view(), name="retrieve-agricultural"),
+    path("get-add-vehicles", VehiclesAPIView.as_view(), name="get-add-vehicles"),
+    path("edit-delete-vehicles/<id_vehicle>", VehiclesDetailAPIView.as_view(), name="update-vehicles"),
 ]
 app_name = 'oipah'

@@ -1,11 +1,16 @@
 from rest_framework import serializers
 
 from authentication.models import User
-from grantors.models import Grantors, Subsidy
+from grantors.models import Grantors
 from oipah.models import SectorAgricul
 from plotLand.models import PlotLand
-from project.models import HistorikProject, ProjectModel, ProjectSubsidy
+from project.models import CommissionProject, HistorikProject, ProjectCharge, ProjectModel, ProjectSubsidy
 
+
+class CommissionProjectOtherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=CommissionProject
+        exclude = ('oipah', 'created_at', 'updated')
 
 
 class HistorikProjectOtherSerializer(serializers.ModelSerializer):
@@ -59,6 +64,17 @@ class ProjectModelSerializer(serializers.ModelSerializer):
         model=ProjectModel
         exclude = ('oipah', 'created_at', 'updated',)
 
+
+class UserSerializerMini(serializers.ModelSerializer):
+    class Meta:
+        model=User
+        fields = ['id', 'name', 'surname', 'phone']
+        
+
+class ProjectChargeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProjectCharge
+        fields = ['id', 'label', 'amount', 'date']
 
 
 
